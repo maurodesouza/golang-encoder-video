@@ -47,9 +47,9 @@ func (db *Database) Connect() (*gorm.DB, error) {
 	var err error
 
 	if db.Env == "test" {
-		db.Db, err = gorm.Open(db.DbType, db.Dsn)
-	} else {
 		db.Db, err = gorm.Open(db.DbTestType, db.DsnTest)
+	} else {
+		db.Db, err = gorm.Open(db.DbType, db.Dsn)
 	}
 
 	if err != nil {
