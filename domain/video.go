@@ -7,10 +7,11 @@ import (
 )
 
 type Video struct {
-	Id         string    `valid:"uuid"`
-	ResourceId string    `valid:"notnull"`
-	FilePath   string    `valid:"notnull"`
-	CreatedAt  time.Time `valid:"-"`
+	Id         string    `json:"encoded_video_folder" valid:"uuid" gorm:"type:uuid;primary_key"`
+	ResourceId string    `json:"resource_id" valid:"notnull"`
+	FilePath   string    `json:"file_path" valid:"notnull"`
+	CreatedAt  time.Time `json:"-" valid:"-"`
+	Jobs       []*Job    `json:"-" valid:"-" gorm:"ForeignKey:VideoId"`
 }
 
 func init() {
