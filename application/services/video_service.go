@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 
 	"cloud.google.com/go/storage"
 )
@@ -61,6 +62,33 @@ func (service *VideoService) Download(bucketName string) error {
 	defer file.Close()
 
 	log.Printf("video %v has been stored", service.Video.Id)
+
+	return nil
+}
+
+func (service *VideoService) Fragment() error {
+	storage_path, video_id := os.Getenv("LOCAL_STORAGE_PATH"), service.Video.Id
+	base_path := storage_path + "/" + video_id
+
+	err := os.Mkdir(base_path, os.ModePerm)
+
+	if err != nil {
+		return err
+	}
+
+	source := base_path + ".mp4"
+	target := base_path + ".frag"
+
+	command := exec.Command("mp4fragment", source, target)
+	output, err := command.CombinedOutput()
+
+	if err != nil {
+		return err
+	}
+
+	if len(output) > 0 {
+		log.Printf("============> output: %s\n", string(output))
+	}
 
 	return nil
 }
