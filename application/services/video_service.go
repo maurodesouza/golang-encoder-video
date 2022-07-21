@@ -92,3 +92,61 @@ func (service *VideoService) Fragment() error {
 
 	return nil
 }
+
+func (service *VideoService) Encode() error {
+	storage_path, video_id := os.Getenv("LOCAL_STORAGE_PATH"), service.Video.Id
+	base_path := storage_path + "/" + video_id
+
+	cmdArgs := []string{}
+
+	cmdArgs = append(cmdArgs, base_path+".frag")
+	cmdArgs = append(cmdArgs, "--use-segment-timeline")
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, base_path)
+	cmdArgs = append(cmdArgs, "-f")
+	cmdArgs = append(cmdArgs, "--exec-dir")
+	cmdArgs = append(cmdArgs, "/opt/bento4/bin/")
+
+	command := exec.Command("mp4dash", cmdArgs...)
+	output, err := command.CombinedOutput()
+
+	if err != nil {
+		return err
+	}
+
+	if len(output) > 0 {
+		log.Printf("============> output: %s\n", string(output))
+	}
+
+	return nil
+}
+
+func (service *VideoService) Finish() error {
+	storage_path, video_id := os.Getenv("LOCAL_STORAGE_PATH"), service.Video.Id
+	base_path := storage_path + "/" + video_id
+
+	err := os.Remove(base_path + ".mp4")
+
+	if err != nil {
+		log.Println("error removing mp4 ", video_id+".mp4")
+		return err
+	}
+
+	err = os.Remove(base_path + ".frag")
+
+	if err != nil {
+		log.Println("error removing mp4 ", video_id+".frag")
+		return err
+	}
+
+	err = os.RemoveAll(base_path)
+
+	if err != nil {
+		log.Println("error removing mp4 ", video_id+".mp4")
+		return err
+	}
+
+	log.Println("all files have been removed: ", video_id)
+
+	return nil
+}
