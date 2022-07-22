@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -65,6 +66,41 @@ func (uploadManager *UploadManager) loadVideoPaths() error {
 	}
 
 	return nil
+}
+
+func (uploadManager *UploadManager) ProcessUpload(concurrency int, doneUpload chan string) error {
+	input := make(chan int, runtime.NumCPU())
+	returnChannel := make(chan string)
+
+	err := uploadManager.loadVideoPaths()
+
+	if err != nil {
+		return err
+	}
+
+	uploadClient, ctx, err := getClientUpload()
+
+	if err != nil {
+		return err
+	}
+
+	for process := 0; process < concurrency; process++ {
+		go uploadManager.uploadWorker(input, returnChannel, uploadClient, ctx)
+	}
+
+	go func() {
+		for index := 0; index < len(uploadManager.Paths); index++ {
+			input <- index
+		}
+
+		close(input)
+	}()
+
+	return nil
+}
+
+func (uploadManager *UploadManager) uploadWorker(input chan int, returnChannel chan string, uploadClient *storage.Client, ctx context.Context) {
+
 }
 
 func getClientUpload() (*storage.Client, context.Context, error) {
