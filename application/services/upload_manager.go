@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -96,10 +97,32 @@ func (uploadManager *UploadManager) ProcessUpload(concurrency int, doneUpload ch
 		close(input)
 	}()
 
+	for response := range returnChannel {
+		if response != "" {
+			doneUpload <- response
+			break
+		}
+	}
+
 	return nil
 }
 
 func (uploadManager *UploadManager) uploadWorker(input chan int, returnChannel chan string, uploadClient *storage.Client, ctx context.Context) {
+	for index := range input {
+		path := uploadManager.Paths[index]
+
+		err := uploadManager.UploadObject(path, uploadClient, ctx)
+
+		if err != nil {
+			uploadManager.Errors = append(uploadManager.Errors, path)
+			log.Printf("error during the upload: %v. Error: %v", path, err)
+			returnChannel <- err.Error()
+		}
+
+		returnChannel <- ""
+	}
+
+	returnChannel <- "uploaded completed"
 
 }
 
