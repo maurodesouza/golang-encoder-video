@@ -3,7 +3,11 @@ package services
 import (
 	"encoder/domain"
 	"encoder/framework/utils"
+	"encoding/json"
+	"os"
+	"time"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/streadway/amqp"
 )
 
@@ -13,7 +17,7 @@ type JobWorkerResult struct {
 	Error   error
 }
 
-func JobWorker(messageChannel chan amqp.Delivery, returnChan chan JobWorkerResult, jobService JobService, workerId int) {
+func JobWorker(messageChannel chan amqp.Delivery, returnChan chan JobWorkerResult, jobService JobService, job domain.Job, workerId int) {
 	for message := range messageChannel {
 		err := utils.IsJson(string(message.Body))
 
@@ -21,6 +25,51 @@ func JobWorker(messageChannel chan amqp.Delivery, returnChan chan JobWorkerResul
 			returnChan <- returnJobResult(domain.Job{}, message, err)
 			continue
 		}
+
+		err = json.Unmarshal(message.Body, &jobService.VideoService.Video)
+		jobService.VideoService.Video.Id = uuid.NewV4().String()
+
+		if err != nil {
+			returnChan <- returnJobResult(domain.Job{}, message, err)
+			continue
+		}
+
+		err = jobService.VideoService.Video.Validate()
+
+		if err != nil {
+			returnChan <- returnJobResult(domain.Job{}, message, err)
+			continue
+		}
+
+		err = jobService.VideoService.InsertVideo()
+
+		if err != nil {
+			returnChan <- returnJobResult(domain.Job{}, message, err)
+			continue
+		}
+
+		job.Video = jobService.VideoService.Video
+		job.OutputBucketPath = os.Getenv("OUTPUT_BUCKET_NAME")
+		job.Id = uuid.NewV4().String()
+		job.Status = "STARTING"
+		job.CreatedAt = time.Now()
+
+		_, err = jobService.JobRepository.Insert(&job)
+
+		if err != nil {
+			returnChan <- returnJobResult(domain.Job{}, message, err)
+			continue
+		}
+
+		jobService.Job = &job
+		err = jobService.Start()
+
+		if err != nil {
+			returnChan <- returnJobResult(domain.Job{}, message, err)
+			continue
+		}
+
+		returnChan <- returnJobResult(job, message, nil)
 	}
 }
 
