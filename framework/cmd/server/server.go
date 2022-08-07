@@ -39,8 +39,8 @@ func init() {
 	db.DsnTest = os.Getenv("DSN_TEST")
 	db.Dsn = os.Getenv("DSN")
 
-	db.DbTestType = os.Getenv("DSN_TEST_TYPE")
-	db.DbType = os.Getenv("DSN_TYPE")
+	db.DbTestType = os.Getenv("DB_TYPE_TEST")
+	db.DbType = os.Getenv("DB_TYPE")
 
 	db.Env = os.Getenv("ENV")
 }
