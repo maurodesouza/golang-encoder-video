@@ -36,7 +36,6 @@ func (uploadManager *UploadManager) UploadObject(objectPath string, client *stor
 	defer file.Close()
 
 	writer := client.Bucket(uploadManager.OutputBucket).Object(filename).NewWriter(ctx)
-	writer.ACL = []storage.ACLRule{{Entity: storage.AllUsers, Role: storage.RoleReader}}
 
 	_, err = io.Copy(writer, file)
 
@@ -122,7 +121,7 @@ func (uploadManager *UploadManager) uploadWorker(input chan int, returnChannel c
 		returnChannel <- ""
 	}
 
-	returnChannel <- "uploaded completed"
+	returnChannel <- "upload completed"
 
 }
 
